@@ -1,4 +1,10 @@
 node_modules
+.turbo
 build
+package-lock.json
+pnpm-lock.yaml
+
+target
+Cargo.lock
 
 .vscode

@@ -1,0 +1,24 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "pipeline": {
+        "build": {
+            "env": ["MODE=release"],
+            "dependsOn": ["lint", "check", "^test", "^build"],
+            "inputs": ["**/*.ts", "**/*.rs"]
+        },
+        "test": {
+            "env": ["MODE=dev"],
+            "dependsOn": ["dev"],
+            "inputs": ["**/*.ts", "**/*.rs"]
+        },
+        "fix": {},
+        "lint": {},
+        "check": {},
+        "clean": {},
+        "dev": {
+            "env": ["MODE=dev"],
+            "cache": false,
+            "persistent": true
+        }
+    }
+}

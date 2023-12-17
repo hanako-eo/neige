@@ -1,0 +1,26 @@
+{
+  "name": "@neige/http",
+  "version": "0.1.0",
+  "description": "A multithread http server for nodejs write in Rust.",
+  "type": "module",
+  "main": "build/",
+  "scripts": {
+    "build": "cargo build --release && MODE=release rollup -c",
+    "dev": "cargo build && MODE=dev rollup -c -w",
+    "lint": "cargo clippy",
+    "check": "cargo check",
+    "test": "cargo test",
+    "clean": "rm -rf ./build; cargo clean"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "koffi": "^2.6.12"
+  },
+  "devDependencies": {
+    "@rollup/plugin-replace": "^5.0.5",
+    "@rollup/plugin-typescript": "^11.1.5",
+    "rollup": "^4.9.0",
+    "tslib": "^2.6.2"
+  }
+}
