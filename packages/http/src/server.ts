@@ -1,4 +1,11 @@
-import { type RustServer, create_server, close_server, launch_server } from "./_rust_server.js"
+import {
+    type RustServer,
+    create_server,
+    close_server,
+    launch_server,
+    set_pool_capacity,
+    set_obstruction
+} from "./_rust_server.js"
 import { once_exit } from "@neige/utils/exit"
 
 export default class Server {
@@ -7,6 +14,15 @@ export default class Server {
 
     constructor() {
         this.inner_server = create_server(() => { })
+        once_exit(this.close)
+    }
+
+    public set_pool_capacity(pool: number) {
+        set_pool_capacity(this.inner_server, pool)
+    }
+
+    public set_obstruction(obstruct: boolean) {
+        set_obstruction(this.inner_server, obstruct)
     }
 
     public launch_on(port: number) {
@@ -20,7 +36,6 @@ export default class Server {
         }
 
         // forces the server to close correctly if the process exits
-        once_exit(this.close)
         launch_server(this.inner_server, port)
     }
 

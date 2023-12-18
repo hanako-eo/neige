@@ -15,6 +15,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@neige/utils": "^0.1.0",
     "koffi": "^2.6.12"
   }
 }
