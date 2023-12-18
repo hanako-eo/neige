@@ -1,4 +1,2 @@
-console.log("HTTP Module")
-
-function assert() { }
-assert()
+import Server from "./server.js"
+export { Server }
