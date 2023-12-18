@@ -5,22 +5,16 @@
   "type": "module",
   "main": "build/",
   "scripts": {
-    "build": "cargo build --release && MODE=release rollup -c",
-    "dev": "cargo build && MODE=dev rollup -c -w",
-    "lint": "cargo clippy",
-    "check": "cargo check",
+    "build": "cargo build --release && tsc",
+    "dev": "cargo build && tsc -w",
+    "lint": "cargo clippy && eslint src/**/**.ts",
+    "check": "cargo check && tsc --noEmit",
     "test": "cargo test",
-    "clean": "rm -rf ./build; cargo clean"
+    "clean": "rm -rf build; cargo clean"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
     "koffi": "^2.6.12"
-  },
-  "devDependencies": {
-    "@rollup/plugin-replace": "^5.0.5",
-    "@rollup/plugin-typescript": "^11.1.5",
-    "rollup": "^4.9.0",
-    "tslib": "^2.6.2"
   }
 }

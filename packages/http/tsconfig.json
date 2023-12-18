@@ -4,5 +4,8 @@
         "rootDir": "src",
         "sourceMap": false,
         "outDir": "build"
-    }
+    },
+    "include": [
+        "src/**/*.ts"
+    ]
 }

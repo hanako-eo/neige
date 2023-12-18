@@ -2,11 +2,6 @@
   "name": "neige",
   "version": "0.1.0",
   "description": "",
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
-  "files": [
-    "build"
-  ],
   "license": "MIT",
   "keywords": [],
   "scripts": {
@@ -17,17 +12,22 @@
     "check": "turbo run check",
     "fix": "turbo run fix",
     "clean": "turbo run clean && rm -rf $(find ./ | grep /.turbo)",
-    "prepare": "npm run build",
     "pretest": "npm run build",
     "posttest": "npm run lint"
   },
   "devDependencies": {
     "@types/node": "^20.10.4",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
     "eslint": "^8.55.0",
-    "typescript": "^5.3.3",
-    "turbo": "^1.11.2"
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "prettier": "^3.1.1",
+    "turbo": "^1.11.2",
+    "typescript": "^5.3.3"
   },
   "workspaces": [
+    "packages/utils",
     "packages/http"
   ]
 }

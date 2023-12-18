@@ -5,7 +5,7 @@
     "declaration": true,
     "forceConsistentCasingInFileNames": true,
     "lib": ["es2018"],
-    "module": "commonjs",
+    "module": "NodeNext",
     "noEmitOnError": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
@@ -14,7 +14,4 @@
     "strict": true,
     "target": "es2018",
   },
-  "exclude": [
-    "node_modules"
-  ],
 }
