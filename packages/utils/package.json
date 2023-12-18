@@ -1,0 +1,27 @@
+{
+  "name": "@neige/utils",
+  "version": "0.1.0",
+  "description": "A utils lib for neige",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "exports": {
+    "./lib": {
+      "default": "./build/lib.js",
+      "types": "./build/lib.d.ts"
+    },
+    "./exit": {
+      "default": "./build/exit.js",
+      "types": "./build/exit.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "fix": "eslint --fix src",
+    "lint": "eslint src/**/**.ts",
+    "check": "tsc --noEmit",
+    "clean": "rm -rf build"
+  },
+  "author": "",
+  "license": "MIT"
+}
