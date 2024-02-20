@@ -4,7 +4,9 @@ import {
     close_server,
     launch_server,
     set_pool_capacity,
-    set_obstruction
+    set_obstruction,
+    get_pool_capacity,
+    get_obstruction
 } from "./_rust_server.js"
 import { once_exit } from "@neige/utils/exit"
 
@@ -17,8 +19,16 @@ export default class Server {
         once_exit(this.close)
     }
 
+    public get_pool_capacity(): number {
+        return get_pool_capacity(this.inner_server)
+    }
+
     public set_pool_capacity(pool: number) {
         set_pool_capacity(this.inner_server, pool)
+    }
+
+    public get_obstruction(): boolean {
+        return get_obstruction(this.inner_server)
     }
 
     public set_obstruction(obstruct: boolean) {

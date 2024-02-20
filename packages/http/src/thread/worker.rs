@@ -1,5 +1,5 @@
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 
 use super::life::WorkerLife;
@@ -16,14 +16,19 @@ impl Worker {
         let mut worker = Self {
             life: WorkerLife::new(),
             job_receiver: receiver,
-            thread: None
+            thread: None,
         };
         worker.spawn();
         worker
     }
 
     pub(crate) fn spawn(&mut self) {
-        if self.is_killed() || self.thread.is_some() && !self.thread.as_ref().unwrap().is_finished() {
+        if self.is_killed()
+            || self
+                .thread
+                .as_ref()
+                .is_some_and(|thread| thread.is_finished())
+        {
             return;
         }
 
@@ -45,7 +50,7 @@ impl Worker {
     pub(crate) fn kill(&mut self) {
         self.life.die();
     }
-    
+
     pub(crate) fn is_killed(&self) -> bool {
         self.life.is_die()
     }

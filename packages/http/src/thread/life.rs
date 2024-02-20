@@ -25,7 +25,7 @@ impl WorkerLife {
         let mut state = self.0.lock().unwrap();
         *state = WorkerLifeState::Die;
     }
-    
+
     pub fn is_die(&self) -> bool {
         matches!(self.get(), WorkerLifeState::Die)
     }

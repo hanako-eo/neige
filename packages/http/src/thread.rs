@@ -1,8 +1,8 @@
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc;
+use std::sync::{Arc, Mutex};
 
-pub mod worker;
 pub mod life;
+pub mod worker;
 
 pub(super) type Job = Box<dyn FnOnce() + Send + 'static>;
 
@@ -23,10 +23,7 @@ impl ThreadPool {
             workers.push(worker::Worker::new(Arc::clone(&receiver)))
         }
 
-        Self {
-            workers,
-            sender,
-        }
+        Self { workers, sender }
     }
 
     pub fn heal(&mut self) {
@@ -37,7 +34,7 @@ impl ThreadPool {
 
     pub fn execute<F>(&mut self, f: F)
     where
-        F: FnOnce() + Send + 'static
+        F: FnOnce() + Send + 'static,
     {
         let job = Box::new(f);
 

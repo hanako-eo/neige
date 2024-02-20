@@ -10,10 +10,24 @@ pub extern "C" fn create_server(callback: server::Callback) -> *const server::Se
 }
 
 #[no_mangle]
+pub extern "C" fn get_pool_capacity(server: *const server::Server) -> u32 {
+    // SAFETY: the pointer of server is define in the javascript code
+    let server = unsafe { &*server };
+    server.pool_capacity
+}
+
+#[no_mangle]
 pub extern "C" fn set_pool_capacity(server: *mut server::Server, pool_capacity: u32) {
     // SAFETY: the pointer of server is define in the javascript code
     let server = unsafe { &mut *server };
     server.pool_capacity = pool_capacity;
+}
+
+#[no_mangle]
+pub extern "C" fn get_obstruction(server: *const server::Server) -> bool {
+    // SAFETY: the pointer of server is define in the javascript code
+    let server = unsafe { &*server };
+    server.obstruct
 }
 
 #[no_mangle]

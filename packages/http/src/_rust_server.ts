@@ -20,12 +20,22 @@ export function create_server(callback: () => void): RustServer {
     return _create_server(koffi.register(callback, ServerCallback))
 }
 
-const _set_pool_capacity = lib.func("set_pool_capacity", koffi.pointer(RustServer), [ServerCallback, "uint32"])
+const _get_pool_capacity = lib.func("get_pool_capacity", "uint32", [koffi.pointer(RustServer)])
+export function get_pool_capacity(server: RustServer): number {
+    return _get_pool_capacity(server)
+}
+
+const _set_pool_capacity = lib.func("set_pool_capacity", "void", [koffi.pointer(RustServer), "uint32"])
 export function set_pool_capacity(server: RustServer, pool_capacity: number): RustServer {
     return _set_pool_capacity(server, pool_capacity)
 }
 
-const _set_obstruction = lib.func("set_obstruction", koffi.pointer(RustServer), [ServerCallback, "uint32"])
+const _get_obstruction = lib.func("get_obstruction", "uint32", [koffi.pointer(RustServer)])
+export function get_obstruction(server: RustServer): boolean {
+    return _get_obstruction(server)
+}
+
+const _set_obstruction = lib.func("set_obstruction", "void", [koffi.pointer(RustServer), "uint32"])
 export function set_obstruction(server: RustServer, obstruct: boolean): RustServer {
     return _set_obstruction(server, obstruct)
 }

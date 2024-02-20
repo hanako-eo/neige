@@ -1,8 +1,12 @@
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream, Shutdown};
-use std::io;
+use std::io::{self, BufReader};
+use std::net::{IpAddr, Ipv4Addr, Shutdown, SocketAddr, TcpListener, TcpStream};
 
-use crate::thread::life::WorkerLife;
+use crate::thread::life::{WorkerLife, WorkerLifeState};
 use crate::thread::ThreadPool;
+
+use self::request::Request;
+
+mod request;
 
 pub type Callback = extern "C" fn();
 
@@ -29,37 +33,40 @@ impl Server {
         let listener = TcpListener::bind(SocketAddr::new(
             IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             port,
-        )).unwrap();
+        ))
+        .unwrap();
         listener.set_nonblocking(true).unwrap();
 
         let pool_capacity = self.pool_capacity;
         let callback = self.callback;
         let life = self.life.clone();
-        let main_thread = std::thread::spawn(move || {
+
+        let serve = move || {
             let mut pool = ThreadPool::new(pool_capacity);
 
             loop {
                 match listener.accept() {
-                    Ok((stream, addr)) => {
-                        pool.execute(connection(callback, &stream, addr));
+                    Ok((mut stream, addr)) => {
+                        pool.execute(connection(callback, &mut stream, addr));
                         // force to close correctly the stream
                         let _ = stream.shutdown(Shutdown::Both);
-                    },
+                    }
                     Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
-                        if life.is_die() {
+                        match life.get() {
                             // stop the main loop and drop the rest as normal
-                            break;
-                        } else {
-                            continue;
+                            WorkerLifeState::Die => break,
+                            WorkerLifeState::Life => continue,
                         }
-                    },
-                    _ => ()
+                    }
+                    _ => (),
                 }
             }
-        });
+        };
 
         if self.obstruct {
-            let _ = main_thread.join();
+            serve();
+        } else {
+            std::thread::spawn(serve);
         }
     }
 }
@@ -70,6 +77,8 @@ impl Drop for Server {
     }
 }
 
-fn connection(callback: Callback, stream: &TcpStream, addr: SocketAddr) -> impl FnOnce() {
+fn connection(callback: Callback, stream: &mut TcpStream, addr: SocketAddr) -> impl FnOnce() {
+    let buffer = BufReader::new(stream);
+    let request = Request::parse(buffer);
     move || callback()
 }
