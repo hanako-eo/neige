@@ -9,7 +9,7 @@ use self::request::Request;
 pub mod ffi;
 mod request;
 
-pub type Callback = extern "C" fn();
+pub type Callback = for<'a> extern "C" fn(*mut Request<'a>);
 
 #[repr(C)]
 pub struct Server {
@@ -47,10 +47,10 @@ impl Server {
 
             loop {
                 match listener.accept() {
-                    Ok((mut stream, addr)) => {
-                        pool.execute(connection(callback, &mut stream, addr));
+                    Ok((stream, addr)) => {
+                        pool.execute(connection(callback, stream, addr));
                         // force to close correctly the stream
-                        let _ = stream.shutdown(Shutdown::Both);
+                        // let _ = stream.shutdown(Shutdown::Both);
                     }
                     Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
                         match life.get() {
@@ -78,8 +78,14 @@ impl Drop for Server {
     }
 }
 
-fn connection(callback: Callback, stream: &mut TcpStream, addr: SocketAddr) -> impl FnOnce() {
-    let buffer = BufReader::new(stream);
-    let request = Request::parse(buffer);
-    move || callback()
+fn connection(callback: Callback, stream: TcpStream, addr: SocketAddr) -> impl FnOnce() + 'static {
+    move || {
+        let buffer = BufReader::new(&stream);
+        let mut request = Box::new(
+            Request::parse(buffer, &stream)
+                .expect("An error occured in the parsing of the request."),
+        );
+        callback(request.as_mut());
+        let _ = stream.shutdown(Shutdown::Both);
+    }
 }

@@ -1,7 +1,7 @@
 use super::{Callback, Server};
 
 #[no_mangle]
-pub extern "C" fn create_server(callback: Callback) -> *const Server {
+pub extern "C" fn create_server(callback: Callback) -> *mut Server {
     let server = Box::new(Server::new(callback));
     Box::leak(server)
 }

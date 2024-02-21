@@ -8,6 +8,7 @@
     "build": "cargo build --release && tsc",
     "dev": "cargo build && tsc -w",
     "lint": "cargo clippy && eslint src/**/**.ts",
+    "fix": "eslint --fix src",
     "check": "cargo check && tsc --noEmit",
     "test": "cargo test",
     "clean": "rm -rf build; cargo clean"

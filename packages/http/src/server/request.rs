@@ -15,22 +15,27 @@ pub enum HTTPVersion {
     V3,
 }
 
+#[derive(Debug)]
 pub enum RequestError {
     RequestHeaderBadlyFormated(String),
     RequestTargetBadlyFormated,
     NoTargetLine,
 }
 
-pub struct Request<R: Read> {
+pub struct Request<'a> {
     method: String,
     url: String,
     version: HTTPVersion,
     headers: HashMap<String, String>,
-    buffer: BufReader<R>,
+    buffer: BufReader<&'a TcpStream>,
+    stream: &'a TcpStream,
 }
 
-impl<R: Read> Request<R> {
-    pub(super) fn parse(mut buffer: BufReader<R>) -> Result<Self, RequestError> {
+impl<'a> Request<'a> {
+    pub(super) fn parse(
+        mut buffer: BufReader<&'a TcpStream>,
+        stream: &'a TcpStream,
+    ) -> Result<Self, RequestError> {
         let mut lines = (&mut buffer).lines().map(|l| l.unwrap());
         let Some((method, url, version)) = lines
             .next()
@@ -69,6 +74,7 @@ impl<R: Read> Request<R> {
             version,
             headers,
             buffer,
+            stream,
         })
     }
 }

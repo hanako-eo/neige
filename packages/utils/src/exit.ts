@@ -1,14 +1,14 @@
 const exit_events = [
-    "SIGSTOP",
+    "SIGTERM",
     "SIGQUIT",
-    "SIGKILL",
     "SIGINT",
     "SIGABRT",
+    "uncaughtException",
     "exit",
 ] as const
 
-export function once_exit(callback: () => void) {
+export function on_exit(callback: () => void) {
     exit_events.forEach(event => {
-        process.once(event, callback)
+        process.on(event, callback)
     })
 }

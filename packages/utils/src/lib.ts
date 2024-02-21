@@ -1,6 +1,6 @@
 import path from "node:path"
 
-export function find_lib(folder: string, name: string): string {
+export function find_lib(...paths: Array<string>): string {
     let file_extension: string
     switch (process.platform) {
         case "win32":
@@ -13,5 +13,8 @@ export function find_lib(folder: string, name: string): string {
             file_extension = ".so"
     }
 
-    return path.join(folder, `lib${name}${file_extension}`)
+    // I assume that paths is not empty
+    const name = paths.pop()!
+
+    return path.join(...paths, `lib${name}${file_extension}`)
 }
