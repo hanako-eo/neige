@@ -6,6 +6,7 @@ use crate::thread::ThreadPool;
 
 use self::request::Request;
 
+pub mod ffi;
 mod request;
 
 pub type Callback = extern "C" fn();
