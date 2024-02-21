@@ -11,7 +11,7 @@
             "dependsOn": ["dev"],
             "inputs": ["**/*.ts", "**/*.rs"]
         },
-        "fix": {},
+        "format": {},
         "lint": {},
         "check": {},
         "clean": {},

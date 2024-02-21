@@ -17,8 +17,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",
-    "fix": "eslint --fix src",
-    "lint": "eslint src/**/**.ts",
+    "format": "biome format src --write",
+    "lint": "biome lint src/**/**.ts",
     "check": "tsc --noEmit",
     "clean": "rm -rf build"
   },

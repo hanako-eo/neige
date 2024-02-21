@@ -1,7 +1,7 @@
 import koffi from "koffi"
-import {dirname} from "path"
-import {fileURLToPath} from "url"
-import {find_lib} from "@neige/utils/lib"
+import { dirname } from "path"
+import { fileURLToPath } from "url"
+import { find_lib } from "@neige/utils/lib"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const lib = koffi.load(
@@ -13,7 +13,7 @@ const lib = koffi.load(
 )
 
 type ImportFFIFunctions<
-    T extends Record<string, (...args: Array<any>) => any>,
+    T extends Record<string, (...args: Array<any>) => unknown>,
 > = {
     [K in keyof T]: [
         koffi.TypeSpec,
@@ -25,7 +25,7 @@ type ImportFFIFunctions<
     ]
 }
 function import_from_ffi<
-    T extends Record<string, (...args: Array<any>) => any>,
+    T extends Record<string, (...args: Array<any>) => unknown>,
 >(lib: koffi.IKoffiLib, functions: ImportFFIFunctions<T>): T {
     return Object.fromEntries(
         Object.entries(functions).map(
@@ -38,14 +38,14 @@ function import_from_ffi<
 }
 
 // SERVER
-export interface RustRequest {}
+export type RustRequest = typeof RustRequest
 // javascript doesn't need to know the content of the structure
 const RustRequest = koffi.pointer(koffi.opaque())
 const ServerCallback = koffi.pointer(
     koffi.proto("ServerCallback", "void", [RustRequest])
 )
 
-export interface RustServer {}
+export type RustServer = typeof RustServer
 // javascript doesn't need to know the content of the structure
 const RustServer = koffi.pointer(koffi.opaque())
 

@@ -8,7 +8,7 @@ const exit_events = [
 ] as const
 
 export function on_exit(callback: () => void) {
-    exit_events.forEach(event => {
+    exit_events.forEach((event) => {
         process.on(event, callback)
     })
 }
