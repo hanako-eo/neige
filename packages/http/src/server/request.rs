@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ffi::{CStr, CString};
 use std::io::{BufRead, BufReader, Read};
 use std::net::TcpStream;
 
@@ -9,8 +10,9 @@ use nom::combinator::opt;
 use nom::error::ParseError;
 use nom::{IResult, InputLength, Parser};
 
+#[derive(Copy, Clone)]
 pub enum HTTPVersion {
-    V1_1,
+    V1_1 = 1,
     V2,
     V3,
 }
@@ -22,11 +24,12 @@ pub enum RequestError {
     NoTargetLine,
 }
 
+#[repr(C)]
 pub struct Request<'a> {
-    method: String,
-    url: String,
+    method: CString,
+    url: CString,
     version: HTTPVersion,
-    headers: HashMap<String, String>,
+    headers: HashMap<CString, CString>,
     buffer: BufReader<&'a TcpStream>,
     stream: &'a TcpStream,
 }
@@ -36,15 +39,17 @@ impl<'a> Request<'a> {
         mut buffer: BufReader<&'a TcpStream>,
         stream: &'a TcpStream,
     ) -> Result<Self, RequestError> {
+        let into_cstring = |s: &str| CString::new(s.to_string()).unwrap();
+
         let mut lines = (&mut buffer).lines().map(|l| l.unwrap());
         let Some((method, url, version)) = lines
             .next()
             .map(
-                |line| -> Result<(String, String, HTTPVersion), RequestError> {
+                |line| -> Result<(CString, CString, HTTPVersion), RequestError> {
                     Ok(separated3(
                         space1,
-                        parse_method.map(String::from),
-                        parse_url.map(String::from),
+                        parse_method.map(into_cstring),
+                        parse_url.map(into_cstring),
                         parse_version.map(HTTPVersion::from),
                     )
                     .parse(line.as_str())
@@ -64,9 +69,9 @@ impl<'a> Request<'a> {
                     return Err(RequestError::RequestHeaderBadlyFormated(line));
                 };
 
-                Ok((name.to_string(), content.to_string()))
+                Ok((into_cstring(name), into_cstring(content)))
             })
-            .collect::<Result<HashMap<String, String>, _>>()?;
+            .collect::<Result<HashMap<CString, CString>, _>>()?;
 
         Ok(Self {
             method,
@@ -76,6 +81,22 @@ impl<'a> Request<'a> {
             buffer,
             stream,
         })
+    }
+
+    pub fn method(&self) -> &CStr {
+        self.method.as_c_str()
+    }
+
+    pub fn url(&self) -> &CStr {
+        self.url.as_c_str()
+    }
+
+    pub fn version(&self) -> &HTTPVersion {
+        &self.version
+    }
+
+    pub fn get_header(&self, name: &CStr) -> Option<&CStr> {
+        self.headers.get(name).map(|s| s.as_c_str())
     }
 }
 

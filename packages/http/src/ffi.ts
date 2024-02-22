@@ -13,7 +13,7 @@ const lib = koffi.load(
 )
 
 type ImportFFIFunctions<
-    T extends Record<string, (...args: Array<any>) => unknown>,
+    T extends Record<string, (...args: Array<never>) => unknown>,
 > = {
     [K in keyof T]: [
         koffi.TypeSpec,
@@ -25,7 +25,7 @@ type ImportFFIFunctions<
     ]
 }
 function import_from_ffi<
-    T extends Record<string, (...args: Array<any>) => unknown>,
+    T extends Record<string, (...args: Array<never>) => unknown>,
 >(lib: koffi.IKoffiLib, functions: ImportFFIFunctions<T>): T {
     return Object.fromEntries(
         Object.entries(functions).map(
@@ -43,8 +43,8 @@ export type RustRequest = typeof RustRequest
 const RustRequest = koffi.pointer(koffi.opaque())
 const ServerCallback = koffi.pointer(
     koffi.proto("ServerCallback", "void", [RustRequest])
-)
-
+    )
+    
 export type RustServer = typeof RustServer
 // javascript doesn't need to know the content of the structure
 const RustServer = koffi.pointer(koffi.opaque())
@@ -106,6 +106,35 @@ export const rust_server = import_from_ffi<FFIServer>(lib, {
         [RustServer],
         (_close_server, server) => {
             _close_server(server)
+        },
+    ],
+})
+
+type FFIRequest = {
+    get_method(req: RustRequest): string
+    get_url(req: RustRequest): string
+    get_http_version(req: RustRequest): number
+}
+export const rust_request = import_from_ffi<FFIRequest>(lib, {
+    get_method: [
+        "char*",
+        [RustRequest],
+        (_get_method, req) => {
+            return _get_method(req)
+        },
+    ],
+    get_url: [
+        "char*",
+        [RustRequest],
+        (_get_url, req) => {
+            return _get_url(req)
+        },
+    ],
+    get_http_version: [
+        "uint8",
+        [RustRequest],
+        (_get_http_version, req) => {
+            return _get_http_version(req)
         },
     ],
 })

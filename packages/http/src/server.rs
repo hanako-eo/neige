@@ -8,6 +8,7 @@ use self::request::Request;
 
 pub mod ffi;
 mod request;
+pub mod request_ffi;
 
 pub type Callback = for<'a> extern "C" fn(*mut Request<'a>);
 

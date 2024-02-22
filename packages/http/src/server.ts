@@ -1,4 +1,4 @@
-import { type RustServer, rust_server } from "./ffi.js"
+import { type RustServer, rust_server, rust_request } from "./ffi.js"
 import { cpus } from "os"
 import { on_exit } from "@neige/utils/exit"
 
@@ -9,8 +9,10 @@ export default class Server {
     private closed = false
 
     constructor() {
-        this.inner_server = rust_server.create_server(async (test) => {
-            console.log(test)
+        this.inner_server = rust_server.create_server(async (req) => {
+            console.log(rust_request.get_method(req))
+            console.log(rust_request.get_url(req))
+            console.log(rust_request.get_http_version(req))
         })
         this.setPoolCapacity(cpus().length)
 
