@@ -1,3 +1,3 @@
 # @neige/http
 
-A multithreaded http server for nodejs write in Rust.
+A multithreaded http server for nodejs written in Rust.
