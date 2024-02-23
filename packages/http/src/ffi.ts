@@ -15,8 +15,6 @@ export interface ServerConstructor {
 export interface Server {
     getPoolCapacity(): number
     setPoolCapacity(poolCapacity: number): void
-    getObstruction(): boolean
-    setObstruction(obstruction: boolean): void
     listen(port: number): void
     close(): void
 }

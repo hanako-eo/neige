@@ -10,7 +10,6 @@ use crate::thread::ThreadPool;
 use self::request::Request;
 
 mod request;
-pub mod request_ffi;
 
 type ServerCallback = ThreadsafeFunction<(), ErrorStrategy::Fatal>;
 
@@ -22,8 +21,6 @@ pub struct JsServer {
 struct Server {
     // Maximum number of Workers that can process requests at the same time
     pool_capacity: u32,
-    // Boolean used to determine whether the server should block the main process or not
-    obstruct: bool,
     callback: ServerCallback,
     life: WorkerLife,
 }
@@ -32,7 +29,6 @@ impl Server {
     fn new(callback: ServerCallback) -> Self {
         Self {
             pool_capacity: 1,
-            obstruct: true,
             life: WorkerLife::new(),
             callback,
         }
@@ -49,7 +45,7 @@ impl Server {
         let callback = self.callback.clone();
         let life = self.life.clone();
 
-        let serve = move || {
+        std::thread::spawn(move || {
             let mut pool = ThreadPool::new(pool_capacity);
 
             loop {
@@ -69,19 +65,7 @@ impl Server {
                     _ => (),
                 }
             }
-        };
-
-        if self.obstruct {
-            serve();
-        } else {
-            std::thread::spawn(serve);
-        }
-    }
-}
-
-impl Drop for Server {
-    fn drop(&mut self) {
-        self.life.die();
+        });
     }
 }
 
@@ -110,16 +94,6 @@ impl JsServer {
     #[napi]
     pub fn set_pool_capacity(&mut self, pool_capacity: u32) {
         self.server.pool_capacity = pool_capacity;
-    }
-
-    #[napi]
-    pub fn get_obstruction(&self) -> bool {
-        self.server.obstruct
-    }
-
-    #[napi]
-    pub fn set_obstruction(&mut self, obstruction: bool) {
-        self.server.obstruct = obstruction;
     }
 
     #[napi]

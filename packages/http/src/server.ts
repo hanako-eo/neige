@@ -3,9 +3,9 @@ import { cpus } from "os"
 import { on_exit } from "@neige/utils/exit"
 
 export default class Server {
-    private reffered_id: NodeJS.Immediate | undefined
+    private refferer: NodeJS.Timeout | undefined
     private inner_server: RustServer
-    private reffered = false
+    private reffered = true
     private started = false
     private closed = false
 
@@ -18,6 +18,7 @@ export default class Server {
             // console.log(rust_request.get_headers(req))
             console.log("--------------------------")
         })
+        console.log("--------------------------")
 
         this.close = this.close.bind(this)
         this.loop = this.loop.bind(this)
@@ -34,26 +35,17 @@ export default class Server {
         this.inner_server.setPoolCapacity(pool)
         return this
     }
-    
-    public getObstruction(): boolean {
-        return this.inner_server.getObstruction()
-    }
-    
-    public setObstruction(obstruct: boolean): this {
-        this.inner_server.setObstruction(obstruct)
-        return this
-    }
 
     public ref(): this {
         if (!this.reffered) {
             this.reffered = true
-            if (this.started) this.reffered_id = setImmediate(this.loop)
+            if (this.started) this.refferer = setInterval(this.loop, 2147483647)
         }
         return this
     }
 
     public unref(): this {
-        clearImmediate(this.reffered_id)
+        clearInterval(this.refferer)
         if (this.reffered) this.reffered = false
         return this
     }
@@ -65,8 +57,7 @@ export default class Server {
     public listen(port: number): this {
         this.started = true
         // forces the nodejs event loop to stay alive
-        if (this.reffered)
-            this.reffered_id = setImmediate(this.loop)
+        if (this.reffered) this.loop()
 
         this.inner_server.listen(port)
         return this
@@ -85,6 +76,6 @@ export default class Server {
 
     private loop() {
         if (this.reffered)
-            this.reffered_id = setImmediate(this.loop)
+            this.refferer = setInterval(this.loop, 2147483647)
     }
 }
