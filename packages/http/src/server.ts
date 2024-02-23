@@ -1,20 +1,23 @@
-import { type RustServer, rust_server, rust_request } from "./ffi.js"
+import { Server as RustServer } from "./ffi.js"
 import { cpus } from "os"
 import { on_exit } from "@neige/utils/exit"
 
 export default class Server {
+    private reffered_id: NodeJS.Immediate | undefined
     private inner_server: RustServer
-    private reffered = true
+    private reffered = false
     private started = false
     private closed = false
 
     constructor() {
-        this.inner_server = rust_server.create_server(async (req) => {
-            console.log(rust_request.get_method(req))
-            console.log(rust_request.get_url(req))
-            console.log(rust_request.get_http_version(req))
+        this.inner_server = new RustServer(() => {
+            // console.log(rust_request.get_method(req))
+            // console.log(rust_request.get_url(req))
+            // console.log(rust_request.get_http_version(req))
+            // console.log(rust_request.get_headers_len(req))
+            // console.log(rust_request.get_headers(req))
+            console.log("--------------------------")
         })
-        this.setPoolCapacity(cpus().length)
 
         this.close = this.close.bind(this)
         this.loop = this.loop.bind(this)
@@ -24,30 +27,33 @@ export default class Server {
     }
 
     public getPoolCapacity(): number {
-        return rust_server.get_pool_capacity(this.inner_server)
+        return this.inner_server.getPoolCapacity()
     }
 
-    public setPoolCapacity(pool: number) {
-        rust_server.set_pool_capacity(this.inner_server, pool)
+    public setPoolCapacity(pool: number): this {
+        this.inner_server.setPoolCapacity(pool)
+        return this
     }
-
+    
     public getObstruction(): boolean {
-        return rust_server.get_obstruction(this.inner_server)
+        return this.inner_server.getObstruction()
+    }
+    
+    public setObstruction(obstruct: boolean): this {
+        this.inner_server.setObstruction(obstruct)
+        return this
     }
 
-    public setObstruction(obstruct: boolean) {
-        rust_server.set_obstruction(this.inner_server, obstruct)
-    }
-
-    public ref(): Server {
+    public ref(): this {
         if (!this.reffered) {
             this.reffered = true
-            if (this.started) setImmediate(this.loop)
+            if (this.started) this.reffered_id = setImmediate(this.loop)
         }
         return this
     }
 
-    public unref(): Server {
+    public unref(): this {
+        clearImmediate(this.reffered_id)
         if (this.reffered) this.reffered = false
         return this
     }
@@ -56,24 +62,29 @@ export default class Server {
         return this.reffered
     }
 
-    public listen(port: number) {
+    public listen(port: number): this {
         this.started = true
         // forces the nodejs event loop to stay alive
-        if (this.reffered) setImmediate(this.loop)
+        if (this.reffered)
+            this.reffered_id = setImmediate(this.loop)
 
-        rust_server.launch_server(this.inner_server, port)
+        this.inner_server.listen(port)
+        return this
     }
-
-    public close() {
-        if (this.closed) return
-
-        rust_server.close_server(this.inner_server)
+    
+    public close(): this {
+        if (this.closed) return this
+        
+        this.unref()
+        this.inner_server.close()
         this.started = false
         this.closed = true
-        this.unref()
+
+        return this
     }
 
     private loop() {
-        if (this.reffered) setImmediate(this.loop)
+        if (this.reffered)
+            this.reffered_id = setImmediate(this.loop)
     }
 }

@@ -1,37 +1,43 @@
 use std::io::{self, BufReader};
 use std::net::{IpAddr, Ipv4Addr, Shutdown, SocketAddr, TcpListener, TcpStream};
 
+use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
+use napi::JsFunction;
+
 use crate::thread::life::{WorkerLife, WorkerLifeState};
 use crate::thread::ThreadPool;
 
 use self::request::Request;
 
-pub mod ffi;
 mod request;
 pub mod request_ffi;
 
-pub type Callback = for<'a> extern "C" fn(*mut Request<'a>);
+type ServerCallback = ThreadsafeFunction<(), ErrorStrategy::Fatal>;
 
-#[repr(C)]
-pub struct Server {
+#[napi(js_name = "Server")]
+pub struct JsServer {
+    server: Server,
+}
+
+struct Server {
     // Maximum number of Workers that can process requests at the same time
-    pub(crate) pool_capacity: u32,
+    pool_capacity: u32,
     // Boolean used to determine whether the server should block the main process or not
-    pub(crate) obstruct: bool,
-    callback: Callback,
-    pub(crate) life: WorkerLife,
+    obstruct: bool,
+    callback: ServerCallback,
+    life: WorkerLife,
 }
 
 impl Server {
-    pub(crate) fn new(callback: Callback) -> Self {
+    fn new(callback: ServerCallback) -> Self {
         Self {
             pool_capacity: 1,
-            obstruct: false,
+            obstruct: true,
             life: WorkerLife::new(),
             callback,
         }
     }
-    pub(crate) fn launch_on(&mut self, port: u16) {
+    fn launch_on(&mut self, port: u16) {
         let listener = TcpListener::bind(SocketAddr::new(
             IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             port,
@@ -40,7 +46,7 @@ impl Server {
         listener.set_nonblocking(true).unwrap();
 
         let pool_capacity = self.pool_capacity;
-        let callback = self.callback;
+        let callback = self.callback.clone();
         let life = self.life.clone();
 
         let serve = move || {
@@ -49,7 +55,7 @@ impl Server {
             loop {
                 match listener.accept() {
                     Ok((stream, addr)) => {
-                        pool.execute(connection(callback, stream, addr));
+                        pool.execute(connection(callback.clone(), stream, addr));
                         // force to close correctly the stream
                         // let _ = stream.shutdown(Shutdown::Both);
                     }
@@ -79,14 +85,64 @@ impl Drop for Server {
     }
 }
 
-fn connection(callback: Callback, stream: TcpStream, addr: SocketAddr) -> impl FnOnce() + 'static {
+#[napi]
+impl JsServer {
+    #[napi(constructor)]
+    pub fn new(callback: JsFunction) -> Self {
+        // TODO: use ErrorStrategy::CalleeHandled
+        let server_callback: ServerCallback = callback
+            .create_threadsafe_function(0, |c| {
+                // c.
+                Ok(vec![()])
+            })
+            .unwrap();
+
+        Self {
+            server: Server::new(server_callback),
+        }
+    }
+
+    #[napi]
+    pub fn get_pool_capacity(&self) -> u32 {
+        self.server.pool_capacity
+    }
+
+    #[napi]
+    pub fn set_pool_capacity(&mut self, pool_capacity: u32) {
+        self.server.pool_capacity = pool_capacity;
+    }
+
+    #[napi]
+    pub fn get_obstruction(&self) -> bool {
+        self.server.obstruct
+    }
+
+    #[napi]
+    pub fn set_obstruction(&mut self, obstruction: bool) {
+        self.server.obstruct = obstruction;
+    }
+
+    #[napi]
+    pub fn listen(&mut self, port: u16) {
+        self.server.launch_on(port);
+    }
+
+    #[napi]
+    pub fn close(&mut self) {
+        self.server.life.die();
+    }
+}
+
+fn connection(
+    callback: ServerCallback,
+    stream: TcpStream,
+    addr: SocketAddr,
+) -> impl FnOnce() + 'static {
     move || {
         let buffer = BufReader::new(&stream);
-        let mut request = Box::new(
-            Request::parse(buffer, &stream)
-                .expect("An error occured in the parsing of the request."),
-        );
-        callback(request.as_mut());
+        let mut request = Request::parse(buffer, &stream)
+            .expect("An error occured in the parsing of the request.");
+        callback.call((), ThreadsafeFunctionCallMode::Blocking);
         let _ = stream.shutdown(Shutdown::Both);
     }
 }

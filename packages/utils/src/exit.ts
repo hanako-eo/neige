@@ -3,7 +3,6 @@ const exit_events = [
     "SIGQUIT",
     "SIGINT",
     "SIGABRT",
-    "uncaughtException",
     "exit",
 ] as const
 

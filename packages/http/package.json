@@ -4,17 +4,31 @@
   "description": "A multithread http server for nodejs write in Rust.",
   "type": "module",
   "main": "build/",
+  "napi": {
+    "name": "neige-http",
+    "triples": {}
+  },
+  "engines": {
+    "node": ">= 10"
+  },
   "scripts": {
-    "build": "cargo build --release && tsc",
-    "dev": "cargo build && tsc -w",
+    "artifacts": "napi artifacts",
+    "build": "napi build --platform --release && tsc",
+    "dev": "napi build --platform && tsc -w",
     "lint": "cargo clippy && biome lint src",
     "format": "cargo fmt && biome format src --write",
     "check": "cargo check && tsc --noEmit",
     "test": "cargo test",
-    "clean": "rm -rf build; cargo clean"
+    "clean": "rm -rf build; cargo clean",
+    "prepublishOnly": "napi prepublish -t npm",
+    "universal": "napi universal",
+    "version": "napi version"
   },
   "author": "",
   "license": "MIT",
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.0"
+  },
   "dependencies": {
     "@neige/utils": "^0.1.0",
     "koffi": "^2.6.12"
