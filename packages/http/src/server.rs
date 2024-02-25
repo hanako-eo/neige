@@ -10,8 +10,8 @@ use crate::thread::ThreadPool;
 use self::request::{JsRequest, Request};
 use self::socket::Socket;
 
-mod socket;
 mod request;
+mod socket;
 
 // TODO: use ErrorStrategy::CalleeHandled
 type ServerCallback = ThreadsafeFunction<Socket, ErrorStrategy::Fatal>;
@@ -37,10 +37,7 @@ impl Server {
         }
     }
     fn launch_on(&mut self, port: u16) {
-        let local_addr = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
-            port,
-        );
+        let local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), port);
         let listener = TcpListener::bind(&local_addr).unwrap();
         listener.set_nonblocking(true).unwrap();
 
@@ -79,20 +76,18 @@ impl Server {
 #[napi]
 impl JsServer {
     #[napi(constructor)]
-    pub fn new(callback: JsFunction) -> Self {
-        let server_callback: ServerCallback = callback
-            .create_threadsafe_function(0, |c| {
-                let socket = c.value;
-                let request: Request = Request::parse(socket)
-                    .expect("An error occured in the parsing of the request.");
+    pub fn new(callback: JsFunction) -> napi::Result<Self> {
+        let server_callback: ServerCallback = callback.create_threadsafe_function(0, |c| {
+            let socket = c.value;
+            let request: Request =
+                Request::parse(socket).expect("An error occured in the parsing of the request.");
 
-                Ok(vec![JsRequest::from(request)])
-            })
-            .unwrap();
+            Ok(vec![JsRequest::from(request)])
+        })?;
 
-        Self {
+        Ok(Self {
             server: Server::new(server_callback),
-        }
+        })
     }
 
     #[napi]

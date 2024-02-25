@@ -2,14 +2,33 @@ import { dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 import { createRequire } from "node:module"
 import { find_lib, get_platform } from "@neige/utils/lib"
+import { IncomingHttpHeaders } from "node:http"
+import { AddressInfo } from "node:net"
 
-const require = createRequire(import.meta.url);
+const require = createRequire(import.meta.url)
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-const lib = require(find_lib(__dirname, "../", "neige-http") ?? `@neige/http-${get_platform()}`)
+const lib = require(
+    find_lib(__dirname, "../", "neige-http") ?? `@neige/http-${get_platform()}`
+)
+
+export interface Socket {
+    readonly remoteAddr: AddressInfo
+    readonly localAddr: AddressInfo
+}
+
+export interface Request {
+    readonly method: string
+    readonly url: string
+    readonly version: string
+
+    headers(): IncomingHttpHeaders
+    socket(): Socket
+    close(): void
+}
 
 export interface ServerConstructor {
-    new(callback: () => void): Server
+    new (callback: (req: Request) => void): Server
 }
 
 export interface Server {

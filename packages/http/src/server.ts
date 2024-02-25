@@ -10,15 +10,11 @@ export default class Server {
     private closed = false
 
     constructor() {
-        this.inner_server = new RustServer((...a) => {
-            // console.log(rust_request.get_method(req))
-            // console.log(rust_request.get_url(req))
-            // console.log(rust_request.get_http_version(req))
-            // console.log(rust_request.get_headers_len(req))
-            // console.log(rust_request.get_headers(req))
-            console.log(a)
+        this.inner_server = new RustServer((req) => {
+            console.log(req.headers())
+            req.close()
         })
-        console.log(5)
+        this.inner_server.setPoolCapacity(cpus().length)
 
         this.close = this.close.bind(this)
         this.loop = this.loop.bind(this)
@@ -62,10 +58,10 @@ export default class Server {
         this.inner_server.listen(port)
         return this
     }
-    
+
     public close(): this {
         if (this.closed) return this
-        
+
         this.unref()
         this.inner_server.close()
         this.started = false
@@ -75,7 +71,6 @@ export default class Server {
     }
 
     private loop() {
-        if (this.reffered)
-            this.refferer = setInterval(this.loop, 2147483647)
+        if (this.reffered) this.refferer = setInterval(this.loop, 2147483647)
     }
 }

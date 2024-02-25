@@ -18,11 +18,10 @@ export function find_lib(...paths: Array<string>): string | null {
     // I assume that paths is not empty
     const lib_name = paths.pop()!
     const target_name = get_platform()
-    
+
     const lib_path = path.join(...paths, `${lib_name}.${target_name}.node`)
-    
-    if (existsSync(lib_path))
-        return lib_path
+
+    if (existsSync(lib_path)) return lib_path
 
     return null
 }

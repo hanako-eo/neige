@@ -1,7 +1,8 @@
 use std::collections::HashMap;
+use std::io::BufRead;
 
 use napi::bindgen_prelude::Reference;
-use napi::{Env, JsObject};
+use napi::{Env, JsObject, JsString};
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag, take_while1};
 use nom::character::complete::{char, space1};
@@ -27,7 +28,7 @@ pub enum RequestError {
 
 #[napi(js_name = "Request")]
 pub struct JsRequest {
-    inner: Request
+    inner: Request,
 }
 
 pub struct Request {
@@ -40,7 +41,7 @@ pub struct Request {
 
 impl Request {
     pub(super) fn parse(mut socket: Socket) -> Result<Self, RequestError> {
-        let mut lines = socket.lines().map(|l| l.unwrap());
+        let mut lines = socket.read_buf().lines().map(|l| l.expect("wwwwww"));
         let Some((method, url, version)) = lines
             .next()
             .map(
@@ -92,7 +93,29 @@ impl From<Request> for JsRequest {
 impl JsRequest {
     #[napi(constructor)]
     pub fn new(env: Env) -> napi::Result<Self> {
-        Err(unsafe { env.throw(env.create_string("The request cannot be built from 0.")?).unwrap_err_unchecked() })
+        Err(unsafe {
+            env.throw(env.create_string("The request cannot be built from 0.")?)
+                .unwrap_err_unchecked()
+        })
+    }
+
+    #[napi(getter)]
+    pub fn method(&self, env: Env) -> napi::Result<JsString> {
+        env.create_string(self.inner.method.as_str())
+    }
+
+    #[napi(getter)]
+    pub fn url(&self, env: Env) -> napi::Result<JsString> {
+        env.create_string(self.inner.url.as_str())
+    }
+
+    #[napi(getter)]
+    pub fn version(&self, env: Env) -> napi::Result<JsString> {
+        env.create_string(match self.inner.version {
+            HTTPVersion::V1_1 => "1.1",
+            HTTPVersion::V2 => "2.0",
+            HTTPVersion::V3 => "3.0",
+        })
     }
 
     #[napi]
@@ -109,6 +132,11 @@ impl JsRequest {
         Ok(JsSocket {
             inner: reference.share_with(env, |repo| Ok(&repo.inner.socket))?,
         })
+    }
+
+    #[napi]
+    pub fn close(&self) {
+        self.inner.socket.close()
     }
 }
 
