@@ -1,5 +1,5 @@
-use std::io::{self, BufReader};
-use std::net::{IpAddr, Ipv4Addr, Shutdown, SocketAddr, TcpListener, TcpStream};
+use std::io::ErrorKind;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
 
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::JsFunction;
@@ -7,11 +7,14 @@ use napi::JsFunction;
 use crate::thread::life::{WorkerLife, WorkerLifeState};
 use crate::thread::ThreadPool;
 
-use self::request::Request;
+use self::request::{JsRequest, Request};
+use self::socket::Socket;
 
+mod socket;
 mod request;
 
-type ServerCallback = ThreadsafeFunction<(), ErrorStrategy::Fatal>;
+// TODO: use ErrorStrategy::CalleeHandled
+type ServerCallback = ThreadsafeFunction<Socket, ErrorStrategy::Fatal>;
 
 #[napi(js_name = "Server")]
 pub struct JsServer {
@@ -34,11 +37,11 @@ impl Server {
         }
     }
     fn launch_on(&mut self, port: u16) {
-        let listener = TcpListener::bind(SocketAddr::new(
+        let local_addr = SocketAddr::new(
             IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             port,
-        ))
-        .unwrap();
+        );
+        let listener = TcpListener::bind(&local_addr).unwrap();
         listener.set_nonblocking(true).unwrap();
 
         let pool_capacity = self.pool_capacity;
@@ -51,11 +54,15 @@ impl Server {
             loop {
                 match listener.accept() {
                     Ok((stream, addr)) => {
-                        pool.execute(connection(callback.clone(), stream, addr));
+                        let socket = Socket::new(stream, addr, local_addr);
+                        let callback = callback.clone();
+                        pool.execute(move || {
+                            callback.call(socket, ThreadsafeFunctionCallMode::Blocking);
+                        });
                         // force to close correctly the stream
                         // let _ = stream.shutdown(Shutdown::Both);
                     }
-                    Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    Err(e) if e.kind() == ErrorKind::WouldBlock => {
                         match life.get() {
                             // stop the main loop and drop the rest as normal
                             WorkerLifeState::Die => break,
@@ -73,11 +80,13 @@ impl Server {
 impl JsServer {
     #[napi(constructor)]
     pub fn new(callback: JsFunction) -> Self {
-        // TODO: use ErrorStrategy::CalleeHandled
         let server_callback: ServerCallback = callback
             .create_threadsafe_function(0, |c| {
-                // c.
-                Ok(vec![()])
+                let socket = c.value;
+                let request: Request = Request::parse(socket)
+                    .expect("An error occured in the parsing of the request.");
+
+                Ok(vec![JsRequest::from(request)])
             })
             .unwrap();
 
@@ -104,19 +113,5 @@ impl JsServer {
     #[napi]
     pub fn close(&mut self) {
         self.server.life.die();
-    }
-}
-
-fn connection(
-    callback: ServerCallback,
-    stream: TcpStream,
-    addr: SocketAddr,
-) -> impl FnOnce() + 'static {
-    move || {
-        let buffer = BufReader::new(&stream);
-        let mut request = Request::parse(buffer, &stream)
-            .expect("An error occured in the parsing of the request.");
-        callback.call((), ThreadsafeFunctionCallMode::Blocking);
-        let _ = stream.shutdown(Shutdown::Both);
     }
 }

@@ -10,15 +10,15 @@ export default class Server {
     private closed = false
 
     constructor() {
-        this.inner_server = new RustServer(() => {
+        this.inner_server = new RustServer((...a) => {
             // console.log(rust_request.get_method(req))
             // console.log(rust_request.get_url(req))
             // console.log(rust_request.get_http_version(req))
             // console.log(rust_request.get_headers_len(req))
             // console.log(rust_request.get_headers(req))
-            console.log("--------------------------")
+            console.log(a)
         })
-        console.log("--------------------------")
+        console.log(5)
 
         this.close = this.close.bind(this)
         this.loop = this.loop.bind(this)
