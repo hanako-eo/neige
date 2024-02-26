@@ -1,8 +1,8 @@
 use std::collections::HashMap;
-use std::io::BufRead;
+use std::io::{BufRead, Read};
 
-use napi::bindgen_prelude::Reference;
-use napi::{Env, JsObject, JsString};
+use napi::bindgen_prelude::{Buffer, Reference};
+use napi::{Env, JsNumber, JsObject, JsString};
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag, take_while1};
 use nom::character::complete::{char, space1};
@@ -12,7 +12,6 @@ use nom::{IResult, InputLength, Parser};
 
 use super::socket::{JsSocket, Socket};
 
-#[napi]
 pub enum HTTPVersion {
     V1_1,
     V2,
@@ -132,6 +131,19 @@ impl JsRequest {
         Ok(JsSocket {
             inner: reference.share_with(env, |repo| Ok(&repo.inner.socket))?,
         })
+    }
+
+    #[napi]
+    pub fn read(&mut self, chunk_size: JsNumber) -> napi::Result<Buffer> {
+        let chunk_size = chunk_size.get_uint32()? as usize;
+        let mut buffer = Vec::with_capacity(chunk_size);
+
+        let read_size = self.inner.socket.read_buf().read(buffer.as_mut())?;
+        if read_size < chunk_size {
+            buffer.truncate(read_size);
+        }
+
+        Ok(buffer.into())
     }
 
     #[napi]

@@ -22,6 +22,7 @@ export interface Request {
     readonly url: string
     readonly version: string
 
+    read(chunkSize: number): Buffer
     headers(): IncomingHttpHeaders
     socket(): Socket
     close(): void

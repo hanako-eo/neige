@@ -1,2 +1,6 @@
-import Server from "./server.js"
+import Server, { ServerCallback } from "./server.js"
 export { Server }
+
+export function createServer(callback: ServerCallback) {
+    return new Server(callback)
+}

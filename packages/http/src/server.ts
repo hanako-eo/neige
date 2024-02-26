@@ -1,18 +1,27 @@
+import IncomingMessage from "./server/request.js"
 import { Server as RustServer } from "./ffi.js"
-import { cpus } from "os"
+import { cpus } from "node:os"
+import EventEmitter from "node:events"
 import { on_exit } from "@neige/utils/exit"
 
-export default class Server {
+export type ServerCallback = (req: IncomingMessage) => void
+
+export default class Server extends EventEmitter {
     private refferer: NodeJS.Timeout | undefined
     private inner_server: RustServer
     private reffered = true
     private started = false
     private closed = false
 
-    constructor() {
-        this.inner_server = new RustServer((req) => {
-            console.log(req.headers())
-            req.close()
+    constructor(callback: ServerCallback) {
+        super({ captureRejections: true })
+
+        this.inner_server = new RustServer(async (req) => {
+            const message = new IncomingMessage(req)
+
+            await callback(message)
+
+            message.destroy()
         })
         this.inner_server.setPoolCapacity(cpus().length)
 

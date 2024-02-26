@@ -56,8 +56,6 @@ impl Server {
                         pool.execute(move || {
                             callback.call(socket, ThreadsafeFunctionCallMode::Blocking);
                         });
-                        // force to close correctly the stream
-                        // let _ = stream.shutdown(Shutdown::Both);
                     }
                     Err(e) if e.kind() == ErrorKind::WouldBlock => {
                         match life.get() {
