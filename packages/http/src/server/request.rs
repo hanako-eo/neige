@@ -1,7 +1,9 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::{BufRead, Read};
+use std::rc::Rc;
 
-use napi::bindgen_prelude::{Buffer, Reference};
+use napi::bindgen_prelude::Buffer;
 use napi::{Env, JsNumber, JsObject, JsString};
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag, take_while1};
@@ -35,12 +37,14 @@ pub struct Request {
     url: String,
     version: HTTPVersion,
     headers: HashMap<String, String>,
-    socket: Socket,
+    socket: Rc<RefCell<Socket>>,
 }
 
 impl Request {
-    pub(super) fn parse(mut socket: Socket) -> Result<Self, RequestError> {
-        let mut lines = socket.read_buf().lines().map(|l| l.expect("wwwwww"));
+    pub(super) fn parse(socket: Rc<RefCell<Socket>>) -> Result<Self, RequestError> {
+        let mut s = socket.borrow_mut();
+        let buffer = s.read_buf();
+        let mut lines = buffer.lines().map(|l| l.expect("wwwwww"));
         let Some((method, url, version)) = lines
             .next()
             .map(
@@ -72,6 +76,7 @@ impl Request {
             })
             .collect::<Result<HashMap<String, String>, _>>()?;
 
+        drop(s);
         Ok(Self {
             method,
             url,
@@ -127,10 +132,10 @@ impl JsRequest {
     }
 
     #[napi]
-    pub fn socket(&self, reference: Reference<JsRequest>, env: Env) -> napi::Result<JsSocket> {
-        Ok(JsSocket {
-            inner: reference.share_with(env, |repo| Ok(&repo.inner.socket))?,
-        })
+    pub fn socket(&self) -> JsSocket {
+        JsSocket {
+            inner: self.inner.socket.clone(),
+        }
     }
 
     #[napi]
@@ -138,7 +143,8 @@ impl JsRequest {
         let chunk_size = chunk_size.get_uint32()? as usize;
         let mut buffer = Vec::with_capacity(chunk_size);
 
-        let read_size = self.inner.socket.read_buf().read(buffer.as_mut())?;
+        let mut socket = self.inner.socket.borrow_mut();
+        let read_size = socket.read_buf().read(buffer.as_mut())?;
         if read_size < chunk_size {
             buffer.truncate(read_size);
         }
@@ -148,7 +154,8 @@ impl JsRequest {
 
     #[napi]
     pub fn close(&self) {
-        self.inner.socket.close()
+        let socket = self.inner.socket.borrow();
+        socket.close()
     }
 }
 

@@ -1,15 +1,14 @@
+use std::cell::RefCell;
 use std::io::BufReader;
 use std::mem::transmute;
 use std::net::{Shutdown, SocketAddr, TcpStream};
+use std::rc::Rc;
 
-use napi::bindgen_prelude::SharedReference;
 use napi::{Env, JsObject};
-
-use super::request::JsRequest;
 
 #[napi(js_name = "Socket")]
 pub struct JsSocket {
-    pub(super) inner: SharedReference<JsRequest, &'static Socket>,
+    pub(super) inner: Rc<RefCell<Socket>>,
 }
 
 pub struct Socket {
@@ -62,30 +61,36 @@ impl JsSocket {
     #[napi(getter)]
     pub fn remote_addr(&self, env: Env) -> napi::Result<JsObject> {
         let mut obj = env.create_object()?;
-        obj.set("address", self.inner.remote_addr.ip().to_string())?;
+        let socket = self.inner.borrow();
+        let remote_addr = &socket.remote_addr;
+
+        obj.set("address", remote_addr.ip().to_string())?;
         obj.set(
             "family",
-            match self.inner.remote_addr {
+            match remote_addr {
                 SocketAddr::V4(_) => "IPv4",
                 SocketAddr::V6(_) => "IPv6",
             },
         )?;
-        obj.set("port", self.inner.remote_addr.port())?;
+        obj.set("port", remote_addr.port())?;
         Ok(obj)
     }
 
     #[napi(getter)]
     pub fn local_addr(&self, env: Env) -> napi::Result<JsObject> {
         let mut obj = env.create_object()?;
-        obj.set("address", self.inner.local_addr.ip().to_string())?;
+        let socket = self.inner.borrow();
+        let local_addr = &socket.local_addr;
+
+        obj.set("address", local_addr.ip().to_string())?;
         obj.set(
             "family",
-            match self.inner.local_addr {
+            match local_addr {
                 SocketAddr::V4(_) => "IPv4",
                 SocketAddr::V6(_) => "IPv6",
             },
         )?;
-        obj.set("port", self.inner.local_addr.port())?;
+        obj.set("port", local_addr.port())?;
         Ok(obj)
     }
 }

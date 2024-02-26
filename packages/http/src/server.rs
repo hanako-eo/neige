@@ -1,5 +1,7 @@
+use std::cell::RefCell;
 use std::io::ErrorKind;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener};
+use std::rc::Rc;
 
 use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi::JsFunction;
@@ -76,9 +78,9 @@ impl JsServer {
     #[napi(constructor)]
     pub fn new(callback: JsFunction) -> napi::Result<Self> {
         let server_callback: ServerCallback = callback.create_threadsafe_function(0, |c| {
-            let socket = c.value;
-            let request: Request =
-                Request::parse(socket).expect("An error occured in the parsing of the request.");
+            let socket = Rc::new(RefCell::new(c.value));
+            let request: Request = Request::parse(socket.clone())
+                .expect("An error occured in the parsing of the request.");
 
             Ok(vec![JsRequest::from(request)])
         })?;
